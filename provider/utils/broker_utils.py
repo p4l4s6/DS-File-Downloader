@@ -1,4 +1,5 @@
 import json
+import socket
 
 import pika
 
@@ -8,7 +9,7 @@ from sqlmodel import Session
 # Configuration
 EXCHANGE_NAME = "ds_file_exchange"
 ROUTING_KEY = "route_general"
-CONNECTION_PARAMETERS = pika.ConnectionParameters("localhost")
+CONNECTION_PARAMETERS = pika.ConnectionParameters(host=socket.gethostbyname("broker"))
 
 
 # Define callback function for received messages

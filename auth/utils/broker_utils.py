@@ -1,11 +1,12 @@
 import json
+import socket
 
 import pika
 
 # Configuration
 EXCHANGE_NAME = "ds_file_exchange"
 ROUTING_KEY = "route_general"
-CONNECTION_PARAMETERS = pika.ConnectionParameters("localhost")
+CONNECTION_PARAMETERS = pika.ConnectionParameters(host=socket.gethostbyname("broker"))
 
 
 def publish_event(event_data):
