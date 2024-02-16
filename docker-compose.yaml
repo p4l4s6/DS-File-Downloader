@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  info:
+    build: ./auth
+    ports:
+      - "8000:8000"
+    depends_on:
+      - broker
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+
+  provider:
+    build: ./provider
+#    deploy:
+#      mode: replicated
+#      replicas: 3
+    ports:
+      - "9000-9020:9000-9020"
+    depends_on:
+      - broker
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+
+  broker:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  broker-data:
+
