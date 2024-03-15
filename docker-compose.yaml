@@ -26,14 +26,37 @@ services:
     networks:
       - my_network
 
-  provider:
+  provider-1:
     build: ./provider
     restart: on-failure
-    #    deploy:
-    #      mode: replicated
-    #      replicas: 3
     ports:
       - "9000:9000"
+    depends_on:
+      - broker
+    environment:
+      RABBITMQ_HOST: broker
+      RABBITMQ_PORT: 5672
+    networks:
+      - my_network
+
+  provider-2:
+    build: ./provider
+    restart: on-failure
+    ports:
+      - "9001:9000"
+    depends_on:
+      - broker
+    environment:
+      RABBITMQ_HOST: broker
+      RABBITMQ_PORT: 5672
+    networks:
+      - my_network
+
+  provider-3:
+    build: ./provider
+    restart: on-failure
+    ports:
+      - "9002:9000"
     depends_on:
       - broker
     environment:

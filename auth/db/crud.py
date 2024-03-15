@@ -37,10 +37,13 @@ def add_token(session: Session, user_id: int):
 
 
 # file related operation
+def get_files_list(session: Session):
+    return session.exec(select(models.FileInfo)).all()
+
+
 def get_file_by_id(session: Session, file_id: int):
     return session.get(models.FileInfo, file_id)
 
 
 def get_file_by_uuid(session: Session, file_uid: uuid.UUID):
     return session.exec(select(models.FileInfo).where(models.FileInfo.file_uid == file_uid)).first()
-

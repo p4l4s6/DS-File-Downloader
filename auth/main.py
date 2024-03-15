@@ -2,9 +2,9 @@ import uuid
 from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException
+from pydantic import parse_obj_as
 from sqlmodel import Session
-
-from db import base, models, helper, crud
+from db import base, crud
 from utils import schema, broker_utils, auth_utils
 
 app = FastAPI()
@@ -37,18 +37,29 @@ async def login(
     raise HTTPException(status_code=400, detail="Invalid credentials")
 
 
+@app.get("/file/")
+async def get_files(
+        session: Session = Depends(base.get_session)
+) -> list[base.BaseFileInfo]:
+    file_list = crud.get_files_list(session)
+    return file_list
+    # return parse_obj_as(List[base.BaseFileInfo], file_list)
+
+
 @app.get("/file/{file_id}/")
-async def get_file(
+async def get_file_detail(
         file_id: int,
         context: auth_utils.CustomContext = Depends(auth_utils.get_current_user)
 ) -> schema.FileResponseSchema:
     file_info = crud.get_file_by_id(context.session, file_id)
     if file_info:
+        download_token = str(uuid.uuid4())
         broker_utils.publish_event({
             "file_uid": str(file_info.file_uid),
-            "token": str(uuid.uuid4())
+            "token": download_token
         })
         response = schema.FileResponseSchema(**file_info.dict())
         response.locations = file_info.locations
+        response.token = download_token
         return response
     raise HTTPException(status_code=404, detail="File not found")

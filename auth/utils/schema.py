@@ -17,4 +17,5 @@ class LoginResponseSchema(BaseUser):
 
 
 class FileResponseSchema(BaseFileInfo):
+    token: Optional[str] = None
     locations: List[BaseFileLocation] = None
