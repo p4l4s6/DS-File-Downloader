@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import random
+import threading
 import time
 
 import aiofiles
@@ -89,22 +90,60 @@ def get_file_info(token, file_id):
 
 
 async def perform_download(session, url, headers, output_path):
-    is_success=False
+    is_success = False
     async with session.get(url, headers=headers) as response:
         if response.status == 200:
             async for data in response.content.iter_chunked(1024):
                 async with aiofiles.open(output_path, "ba") as f:
                     await f.write(data)
+        else:
+            is_success = False
+    return is_success
+
 
 async def download_chunk(session, urls, start, end, output_path):
     """
     Downloads a specific byte range of the file from a server.
     """
-    first_url=urls[0]
+    first_url = urls[0]
     print(f"Downloading chunk {start}-{end} from server {first_url}")
-    headers = {'Range': f'bytes={start}-{end}'}
-    perform_download()
+    # headers = {'Range': f'bytes={start}-{end}'}
+    # status = perform_download()
 
+
+import threading
+import asyncio
+
+
+async def download_manager(tasks):
+    threads = []  # Store active threads
+    max_threads = 3  # Maximum concurrent threads
+
+    while tasks:
+        # Launch new threads up to the maximum limit
+        while len(threads) < max_threads and tasks:
+            task = tasks.pop(0)
+            loop = asyncio.new_event_loop()  # Create a new event loop for each thread
+            thread = threading.Thread(target=task, args=(task, loop))
+            threads.append(thread)
+            thread.start()
+
+        # Monitor thread completion and handle errors
+        for i, (thread, loop) in enumerate(threads):
+            if not thread.is_alive():
+                threads.pop(i)  # Remove completed thread
+                try:
+                    loop.run_until_complete(task)  # Run any remaining coroutines
+                    loop.close()  # Close the event loop
+                except Exception as e:
+                    print(f"Task failed: {task}\nException: {e}")
+                    tasks.insert(0, task)  # Requeue failed task
+
+
+def run_task(task, loop):
+    """Runs the given async task in a new event loop."""
+    asyncio.set_event_loop(loop)  # Set the loop for this thread
+    loop.run_until_complete(task)
 
 
 async def download(file_info, output_filename):
@@ -144,7 +183,7 @@ async def download(file_info, output_filename):
                 start_byte = end_byte + 1
                 end_byte = end_byte + CHUNK_SIZE
                 index += 1
-        await asyncio.gather(*tasks)
+        await download_manager(tasks)
 
     # Merge downloaded chunks into the final file
     with open(output_filename, 'wb') as f:
