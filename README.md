@@ -126,6 +126,12 @@ The File Server serves as a critical component within our Distributed File Downl
 
 
 ## Built with:
+- [Python](https://www.python.org/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [RabbitMQ](https://www.rabbitmq.com/)
+- [SQLite](https://www.sqlite.org/)
+- [Nginx](https://www.nginx.com/)
+- [Docker](https://www.docker.com/)
 
 ### Libraries:
 | Library | Version |
@@ -157,7 +163,21 @@ The File Server serves as a critical component within our Distributed File Downl
 
 
 ## Getting Started:
-Instructions on setting up your project locally
+
+1. Activate the virtual environment
+```
+source venv/bin/activate
+```
+
+2. Install the requirements
+```
+pip install -r requirements.txt
+```
+
+3. Run the frontend code
+```
+python frontend.py
+```
 
 
 ## Results of the tests:
@@ -177,5 +197,8 @@ Collect numerical data of test cases:
 - Conduct simple analysis for documentation purposes (e.g. plots or graphs)
 
 ## Acknowledgments:
-list resources you find helpful
+
+https://www.toptal.com/python/beginners-guide-to-concurrency-and-parallelism-in-python
+
+https://www.rabbitmq.com/tutorials/tutorial-two-python
 
