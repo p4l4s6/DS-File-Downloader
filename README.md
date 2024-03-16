@@ -13,6 +13,7 @@ The system comprises four essential components, each playing a critical role in 
 # Implemented Components
 
 ## System Architecture
+<img src="https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/354a8286-e730-4531-90fa-a8f4693e8666" alt="drawing" width="820"/>
 
 ## 1. Client App
 The Client App is a crucial component of our Distributed File Download System, responsible for facilitating user interactions and managing file downloads efficiently. Leveraging advanced asynchronous programming techniques, such as aiohttp and asyncio, the Client App optimizes the download process by fetching files in smaller, manageable chunks. This approach not only enhances download speed but also improves system resource utilization, enabling concurrent downloads while minimizing memory overhead.
@@ -48,6 +49,8 @@ The Information Server stands as a critical component within our Distributed Fil
 
 <b>Event Triggering:</b> Upon receiving file download requests from clients, the Information Server triggers events to notify the Message Broker, facilitating seamless communication and event-driven interactions within the distributed system. This asynchronous event handling mechanism ensures timely processing of download requests and enables efficient coordination between server components.
 
+<img src="https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/1d6c0ed1-2e28-4a50-999b-92742857dc13" alt="drawing" width="820"/>
+
 ### Implementation Details:
 
 <b>FastAPI Integration:</b> The Information Server leverages the FastAPI framework to develop robust and high-performance APIs for seamless interaction with clients. FastAPI's asynchronous capabilities enable efficient handling of concurrent requests and facilitate rapid development of RESTful endpoints for file management functionalities.
@@ -56,6 +59,13 @@ The Information Server stands as a critical component within our Distributed Fil
 SQLite Database Integration: The Information Server integrates SQLite database technology to store and manage file-related data efficiently. Leveraging SQL queries and transactions, the server retrieves file information, validates user access, and maintains authentication tokens, ensuring consistent and reliable data management across system operations.
 
 <b>Event Triggering Mechanism:</b> Upon receiving file download requests from clients, the Information Server triggers events to notify the Message Broker, utilizing asynchronous event-driven programming paradigms. This event-driven architecture enables seamless communication and coordination between server components, ensuring timely processing of download requests and efficient resource utilization.
+
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/da5a86a5-17da-4a6d-9459-3cb1a3881c6d)
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/854bfd67-0684-4384-a1e5-de21b3c20ece)
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/34d8377e-2f2a-49ff-9cb2-9a9b0b82d89d)
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/44dc15ae-4085-4bbe-a85c-32881c9f17e7)
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/373ec140-d3e3-4034-ac57-dd401f916fdd)
+
 
 ## 3. Message Broker
 
@@ -80,6 +90,9 @@ The File Server serves as a critical component within our Distributed File Downl
 
 <b>Support for Stream Download:</b> By supporting stream downloads, the File Server enables clients to retrieve files in chunks, optimizing network utilization and enhancing download performance. This approach allows for efficient utilization of bandwidth and reduces latency, particularly when downloading large files over network connections with limited bandwidth.
 
+<img src="https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/3fb991d6-34bf-4fee-9f77-c7cbeec6a74f" alt="drawing" width="480">
+
+
 ### Deployment:
 
 <b>Dockerization:</b> The entire application, including the File Server, is containerized using Docker, ensuring portability and ease of deployment across diverse environments. Docker-compose is utilized to define and manage the application's multi-container architecture, simplifying the deployment process and ensuring consistency across deployment environments.
@@ -88,7 +101,13 @@ The File Server serves as a critical component within our Distributed File Downl
 
 <b>Deployment Procedure:</b> Deploying the Distributed File Download System is streamlined using Docker-compose. By executing the command docker-compose up, the entire application stack, including the File Server and associated services, can be launched seamlessly, ensuring rapid deployment and consistent operation across different deployment environments.
 
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/fc96a473-fc61-4cd6-8e40-c64bf8fc3828)
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/caf88f7f-989e-4a02-9161-54b736d618a0)
+
+
 ## Process Flow Diagram
+
+![image](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/0d96d7b6-ae00-40c8-9e8b-de6c87d04d2b)
 
 1. The process starts with the client application where the client will input the id of a file which it wants to download it.
 2. After receiving the file id it will trigger a GET request to the Information server.
@@ -107,11 +126,35 @@ The File Server serves as a critical component within our Distributed File Downl
 
 
 ## Built with:
-Detailed description of the system functionality and how to run the implementation 
 
-- If you are familiar with a particular container technology, feel free to use it (Docker is not mandatory)
-- Any programming language can be used, such as: Python, Java, JavaScript, ..
-- Any communication protocol / Internet protocol suite can be used: HTTP(S), MQTT, AMQP, CoAP, ..
+### Libraries:
+| Library | Version |
+| ------- | ------- |
+| annotated-types | 0.6.0 |
+| anyio | 4.2.0 |
+| click | 8.1.7 |
+| colorama | 0.4.6 |
+| fastapi | 0.109.2 |
+| greenlet | 3.0.3 |
+| h11 | 0.14.0 |
+| httptools | 0.6.1 |
+| idna | 3.6 |
+| passlib | 1.7.4 |
+| pydantic | 2.6.1 |
+| pydantic_core | 2.16.2 |
+| python-dotenv | 1.0.1 |
+| PyYAML | 6.0.1 |
+| sniffio | 1.3.0 |
+| SQLAlchemy | 2.0.27 |
+| sqlmodel | 0.0.14 |
+| starlette | 0.36.3 |
+| typing_extensions | 4.9.0 |
+| uvicorn | 0.27.1 |
+| watchfiles | 0.21.0 |
+| websockets | 12.0 |
+| pika~ | 1.3.2 |
+
+
 
 ## Getting Started:
 Instructions on setting up your project locally
