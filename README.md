@@ -1,5 +1,13 @@
 # Distributed File Download System
 
+### Contributors:
+| Name | Student number |
+| ---- | ------ |
+| Raisul Islam | 2304795 |
+| Mohammadreza Sadeghi | 2305005 |
+| Ameen Maniparambath | 2307266 |
+| Nazmul Mahmud | 2307263 |
+
 # About the Project
 ## Abstract
 The Distributed File Download System represents a cutting-edge solution for optimizing file retrieval processes in a distributed environment. Comprising four distinct components—Client App, Information Server, Message Broker, and File Server—the system aims to streamline file distribution while ensuring scalability and reliability. Leveraging RabbitMQ as the message broker, the system orchestrates seamless communication between servers, facilitating efficient event-driven interactions. Key features include the Information Server's role in storing file metadata and generating unique download tokens, and the File Server's distribution across multiple zones for optimal download speeds. This report provides a comprehensive analysis of the system's architecture, process flow, and implementation, highlighting its significance in modern file management.
