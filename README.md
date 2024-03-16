@@ -162,7 +162,7 @@ The File Server serves as a critical component within our Distributed File Downl
 
 
 
-## Getting Started:
+## Getting Started
 
 1. Activate the virtual environment
 ```
@@ -180,23 +180,27 @@ python frontend.py
 ```
 
 
-## Results of the tests:
-Detailed description of the system evaluation
-Evaluate your implementation using selected criteria, for example:
-- Number of messages / lost messages, latencies, ...
-- Request processing with different payloads, ..
-- System throughput, ..
+## Results of the tests
 
+Testing the system with one server running and only one client:
+![Screenshot_20](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/268075cc-784a-4fbd-a5d9-734fbf6e11ce)
 
-Design two evaluation scenarios that you compare with each other, for example:
-- Small number / large number of messages
-- Small payload / big payload
+Testing the system with two servers running and one client:
+![Screenshot_21](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/1c899ba6-2189-45f9-8a4c-6a9ad35ea9a1)
 
-Collect numerical data of test cases:
-- Collecting logs of container operations
-- Conduct simple analysis for documentation purposes (e.g. plots or graphs)
+Testing the system with two servers running and 5 clients:
+![Screenshot_22](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/e6df2e4c-1449-42ff-ae81-7ac64d2bd63e)
 
-## Acknowledgments:
+Testing the system with two servers running while one of them fails in the middle of download:
+![Screenshot_27](https://github.com/p4l4s6/DS-File-Downloader/assets/50152321/d81ab309-ffdb-4348-829c-c4a7a5884cdd)
+
+### Conclusion:
+
+1. Having more servers to download increases the download speed because the client can download more from the faster servers.
+2. The system has scalability, so we don't see a considerable drop in the performance by increasing the payload/number of clients.
+3. The system is reliable, so failing one or more servers in the middle of a download operation doesn't result in failing that operation.
+
+## Acknowledgments
 
 https://www.toptal.com/python/beginners-guide-to-concurrency-and-parallelism-in-python
 
