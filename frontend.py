@@ -1,19 +1,17 @@
+import ast
 import asyncio
-import concurrent.futures
+import os
 import random
-import threading
 import time
+from json import JSONDecodeError
 
 import aiofiles
 import aiohttp
 import requests
-import hashlib
-import os
 
-from requests import JSONDecodeError
-
-CHUNK_SIZE = 1 * 1024 * 1024  # 2 megabyte
+CHUNK_SIZE = 3 * 1024 * 1024  # 2 megabyte
 AUTH_SERVER = "https://ds-auth.cognix.tech"
+download_report = {}
 
 
 def send_request(path, data, headers, method):
@@ -31,39 +29,11 @@ def send_request(path, data, headers, method):
         print("Unable to send network request")
 
 
-# def download_file(url, start_byte, end_byte, output_file):
-#     headers = {'Range': f'bytes={start_byte}-{end_byte}'}
-#     response = requests.get(url, headers=headers, stream=True)
-#
-#     if response.status_code == 200:
-#         # with open(output_file, 'ab') as f:
-#         #     for chunk in response.iter_content(chunk_size=1024):
-#         #         if chunk:
-#         #             f.write(chunk)
-#         print(f"Downloaded bytes {start_byte}-{end_byte}")
-#         return response
-#     else:
-#         print("Failed to download file.")
-#         print(response.json())
-
-
-def check_hash(file_name, original_hash):
-    h = hashlib.sha256()
-    b = bytearray(128 * 1024)
-    mv = memoryview(b)
-    with open(file_name, 'rb', buffering=0) as f:
-        for n in iter(lambda: f.readinto(mv), 0):
-            h.update(mv[:n])
-    current_hash = h.hexdigest()
-    print(current_hash)
-    return current_hash == original_hash
-
-
 def login():
-    username = input("Enter your email:\n")
-    password = input("Enter your password:\n")
-    # username = 'admin@admin.com'
-    # password = '1234'
+    # username = input("Enter your email:\n")
+    # password = input("Enter your password:\n")
+    username = 'admin@admin.com'
+    password = '1234'
     payload = {'email': username, 'password': password}
     headers = {
         'Accept': 'application/json',
@@ -78,8 +48,10 @@ def login():
 def get_file_list(token):
     headers = {'Authorization': f"Token {token}"}
     response = send_request(f"{AUTH_SERVER}/file/", data=None, headers=headers, method="GET")
+    print("==============File List============")
     for item in response:
         print(f"{item['id']}:-> {item['name']}")
+    print("===================================")
     return response
 
 
@@ -89,177 +61,127 @@ def get_file_info(token, file_id):
     return response
 
 
-async def perform_download(session, url, headers, output_path):
-    is_success = False
-    async with session.get(url, headers=headers) as response:
-        if response.status == 200:
-            async for data in response.content.iter_chunked(1024):
-                async with aiofiles.open(output_path, "ba") as f:
-                    await f.write(data)
-        else:
-            is_success = False
-    return is_success
+async def generate_report(server_ip, size):
+    if server_ip in download_report.keys():
+        download_report[server_ip] = download_report[server_ip] + size
+    else:
+        download_report[server_ip] = size
 
 
-async def download_chunk(session, urls, start, end, output_path):
-    """
-    Downloads a specific byte range of the file from a server.
-    """
-    first_url = urls[0]
-    print(f"Downloading chunk {start}-{end} from server {first_url}")
-    # headers = {'Range': f'bytes={start}-{end}'}
-    # status = perform_download()
+async def download(session, chunk, server, file_info):
+    """Downloads a chunk from a server."""
+    # print(f"Downloading chunk {chunk} from server {server}...")
+    # await asyncio.sleep(10)  # Simulate download time
+    # if chunk == random.randint(0, 10) and server == "server1":  # Simulate occasional failures
+    #     raise Exception("Download failed for chunk {}".format(chunk))
+    # print(f"Chunk {chunk} downloaded from server {server['id']}!")
+    try:
+        print(f"Downloading chunk {chunk} from server {server['id']}...")
+        file_uid = file_info['file_uid']
+        download_token = file_info['token']
+        output_path = f"{file_uid}.part.{chunk.get('chunk_no')}"
+        headers = chunk['data']
+        async with session.get(f"{server['server_ip']}/download/{download_token}/{file_uid}/",
+                               headers=headers) as response:
+            if response.status == 200:
+                async for data in response.content.iter_chunked(1024):
+                    async with aiofiles.open(output_path, "ba") as f:
+                        await f.write(data)
+                await generate_report(server['id'], chunk['total_byte'])
+    except Exception as e:
+        chunk['server'] = server
+        raise Exception(f"{chunk}")
 
 
-import threading
-import asyncio
+async def download_manager(file_info, session, chunks):
+    """Manages download tasks across multiple servers."""
+
+    active_tasks = set()
+    completed_chunks = set()
+    servers = file_info['locations']
+    error_servers = []
+
+    while chunks or active_tasks:
+        while chunks and len(active_tasks) < len(servers):
+            chunk = chunks.pop(0)
+            server = servers[len(active_tasks)]  # Assign server based on task count
+            for item in servers:
+                if item['id'] not in error_servers:
+                    server = item
+            task = asyncio.create_task(download(session, chunk, server, file_info))
+            active_tasks.add(task)
+
+        done, pending = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
+
+        for task in done:
+            try:
+                result = await task  # Get the result (None for successful completion)
+                completed_chunks.add(result)  # Add completed chunk to set
+            except Exception as e:
+                chunk = ast.literal_eval(str(e))
+                server = chunk.pop('server')
+                print("#########################################")
+                print(f"Task failed: {chunk} from {server['id']}")
+                print("#########################################")
+                server_id = server['id']
+                if server_id not in error_servers:
+                    error_servers.append(server_id)
+                print("Assigning task to another server.....")
+                chunks.append(chunk)
+            active_tasks.remove(task)
+
+    print("All chunks downloaded!")
 
 
-async def download_manager(tasks):
-    threads = []  # Store active threads
-    max_threads = 3  # Maximum concurrent threads
-
-    while tasks:
-        # Launch new threads up to the maximum limit
-        while len(threads) < max_threads and tasks:
-            task = tasks.pop(0)
-            loop = asyncio.new_event_loop()  # Create a new event loop for each thread
-            thread = threading.Thread(target=task, args=(task, loop))
-            threads.append(thread)
-            thread.start()
-
-        # Monitor thread completion and handle errors
-        for i, (thread, loop) in enumerate(threads):
-            if not thread.is_alive():
-                threads.pop(i)  # Remove completed thread
-                try:
-                    loop.run_until_complete(task)  # Run any remaining coroutines
-                    loop.close()  # Close the event loop
-                except Exception as e:
-                    print(f"Task failed: {task}\nException: {e}")
-                    tasks.insert(0, task)  # Requeue failed task
-
-
-def run_task(task, loop):
-    """Runs the given async task in a new event loop."""
-    asyncio.set_event_loop(loop)  # Set the loop for this thread
-    loop.run_until_complete(task)
-
-
-async def download(file_info, output_filename):
-    """
-    Downloads the file in parts using multiple threads.
-    """
+async def process_download(file_info):
     file_uid = file_info['file_uid']
-    file_hash = file_info['locations']
-    download_token = file_info['token']
-    locations = file_info['locations']
+    # file_hash = file_info['locations']
+    # download_token = file_info['token']
+    # locations = file_info['locations']
     file_size = int(file_info['file_size'])
-    print(f"file size {file_size}")
-    file_hash = file_info['file_hash']
-
-    num_chunks = (file_size // CHUNK_SIZE) + 1
-    print(f"number of chunks {num_chunks}")
-    urls = []
-    tasks = []
-    for location in locations:
-        urls.append(f"{location['server_ip']}/download/{download_token}/{file_uid}/")
-
+    # # print(f"file info {file_info}")
+    # file_hash = file_info['file_hash']
+    chunks = []
+    num_chunks = int((file_size / CHUNK_SIZE)) + 1
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(keepalive_timeout=300)) as session:
         start_byte = 0
         end_byte = 0 + CHUNK_SIZE
-        index = 0
         for i in range(num_chunks):
-            if end_byte < file_size:
-                if index > len(urls):
-                    index = 0
-                tasks.append(download_chunk(
-                    session=session,
-                    urls=urls,
-                    start=start_byte,
-                    end=end_byte,
-                    output_path=f"{output_filename}.part.{i}"
-                ))
-                start_byte = end_byte + 1
-                end_byte = end_byte + CHUNK_SIZE
-                index += 1
-        await download_manager(tasks)
-
+            if end_byte > file_size:
+                end_byte = file_size
+            chunks.append({
+                'chunk_no': i,
+                'total_byte': end_byte - start_byte,
+                'data': {
+                    'Range': f'bytes={start_byte}-{end_byte}'
+                }
+            })
+            start_byte = end_byte + 1
+            end_byte = end_byte + CHUNK_SIZE
+        start = time.time()
+        await download_manager(file_info, session, chunks)
+        end = time.time()
     # Merge downloaded chunks into the final file
-    with open(output_filename, 'wb') as f:
+    with open(file_info['name'], 'wb') as f:
         for i in range(num_chunks):
-            chunk_path = f'{output_filename}.part.{i}'
+            chunk_path = f'{file_uid}.part.{i}'
             with open(chunk_path, 'rb') as chunk_file:
                 f.write(chunk_file.read())
             os.remove(chunk_path)  # Remove temporary chunks
+
+    print("==============Download Report============")
+    print(f"Total Time taken: {end - start}")
+    print("--------server percentage----------------")
+    for key in download_report.keys():
+        print(f"{key}: {download_report[key]} ---> {round((download_report[key] / file_size) * 100, 2)}%")
 
 
 async def main():
     token = login()
     files = get_file_list(token)
     selected_file = int(input('Enter file number you want to download:\n'))
-    file_info = get_file_info(token, selected_file)
-    file_uid = file_info['file_uid']
-    file_hash = file_info['locations']
-    download_token = file_info['token']
-    locations = file_info['locations']
-    file_size = file_info['file_size']
-    file_hash = file_info['file_hash']
-    start = time.time()
-    await download(file_info, "test.mp4")
-    end = time.time()
-    print(end - start)
-
-    # # username = input('Enter your username:\n')
-    # # password = input('Enter your password:\n')
-    # username = 'admin@admin.com'
-    # password = '1234'
-    # response = requests.post('https://ds-auth.cognix.tech/auth/login/',
-    #                          json=)
-    # auth_token = response.json()['token']
-    # print(auth_token)
-    # # We should get the file name from the user and fetch the appropriate file id from that
-    # file_name = 'example.mp4'
-    # file_id = 1
-    # response = requests.get(f'https://ds-auth.cognix.tech/file/{file_id}/',
-    #                         headers={'Authorization': f"Token {auth_token}"}).json()
-    # print(response)
-    # file_hash = response['file_hash']
-    # print('file hash:', file_hash)
-    # file_token = response['token']
-    # file_uid = response['file_uid']
-    # # url = 'server-ip/download/token/file_uid
-    # server_ips = [x['server_ip'] for x in response['locations']]
-    # url = f'{server_ips[0]}/download/{file_token}/{file_uid}/'
-    # # file_size = int(response.json()['file_size'])
-    # file_size = 17839845
-    #
-    # chunk_size = CHUNK_SIZE
-    # chunks_length = int(file_size / chunk_size) + 1
-    # start_byte = 0
-    # end_byte = 0 + chunk_size
-    # last_written_byte = -1
-    # current_chunk_number = 0
-    # # print(response['locations'][0])
-    #
-    # while current_chunk_number <= chunks_length:
-
-
-# TODO
-# Here we should have different threads downloading chunks
-
-# chuck_response = download_file(url, start_byte, end_byte, file_name)
-# if start_byte == last_written_byte + 1:
-#     with open(file_name, 'ab') as f:
-#         for chunk in response.iter_content(chunk_size=1024):
-#             if chunk:
-#                 f.write(chunk)
-#     start_byte = end_byte + 1
-#     end_byte = end_byte + chunk_size
-# else:
-#     with open(file_name, 'r+b') as f:
-#         f.write(bytearray(start_byte - last_written_byte))
-# print(check_hash(file_name, file_hash))
+    file_info = get_file_info(token, 1)
+    await process_download(file_info)
 
 
 if __name__ == '__main__':

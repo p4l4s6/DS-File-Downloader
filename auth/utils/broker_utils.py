@@ -6,7 +6,8 @@ import pika
 # Configuration
 EXCHANGE_NAME = "ds_file_exchange"
 ROUTING_KEY = "route_general"
-CONNECTION_PARAMETERS = pika.ConnectionParameters(host=socket.gethostbyname("broker"))
+credentials = pika.PlainCredentials('dsuser', 'myDsPass2023')
+CONNECTION_PARAMETERS = pika.ConnectionParameters(host="128.214.255.220", credentials=credentials)
 
 
 def publish_event(event_data):
